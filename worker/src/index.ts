@@ -4,6 +4,7 @@ import { generateCopyWithGemini } from './gemini';
 import { parseAndValidateGenerateRequest } from './validation';
 
 export interface Env {
+  ASSETS?: Fetcher;
   GEMINI_API_KEY?: string;
   GEMINI_MODEL?: string;
   ALLOWED_ORIGIN?: string;
@@ -16,7 +17,13 @@ function buildSecurityHeaders(request: Request, env: Env): Headers {
 
   if (allowedOrigin === '*') {
     headers.set('Access-Control-Allow-Origin', '*');
-  } else if (requestOrigin && allowedOrigin.split(',').map((o) => o.trim()).includes(requestOrigin)) {
+  } else if (
+    requestOrigin &&
+    allowedOrigin
+      .split(',')
+      .map((o) => o.trim())
+      .includes(requestOrigin)
+  ) {
     headers.set('Access-Control-Allow-Origin', requestOrigin);
     headers.set('Vary', 'Origin');
   } else {
@@ -34,6 +41,11 @@ function buildSecurityHeaders(request: Request, env: Env): Headers {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+
+    if (!url.pathname.startsWith('/api/') && env.ASSETS) {
+      return env.ASSETS.fetch(request);
+    }
+
     const headers = buildSecurityHeaders(request, env);
 
     if (request.method === 'OPTIONS') {

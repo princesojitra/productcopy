@@ -93,20 +93,21 @@ npm run build
 
 ## Deployment Instructions
 
+`worker/wrangler.toml` is configured with Cloudflare Workers Static Assets (`../dist`), so one deployment serves both the React frontend and `/api/*` endpoints from the same origin.
+
 1. **Authenticate Wrangler**
    ```bash
    npx wrangler login
    ```
-2. **Store the Gemini API key as an encrypted Worker secret**
+2. **Build the frontend**
+   ```bash
+   npm run build
+   ```
+3. **Store the Gemini API key as an encrypted Worker secret**
    ```bash
    npx wrangler secret put GEMINI_API_KEY --config worker/wrangler.toml
    ```
-3. **Restrict CORS origin** in `worker/wrangler.toml` (`ALLOWED_ORIGIN` set to your production frontend URL) and deploy the Worker:
+4. **Deploy to Cloudflare**
    ```bash
    npm run deploy:worker
-   ```
-4. **Build and deploy the frontend** (e.g. Cloudflare Pages):
-   ```bash
-   VITE_API_BASE_URL="https://productcopy-worker.<your-subdomain>.workers.dev" npm run build
-   npx wrangler pages deploy dist --project-name productcopy
    ```
