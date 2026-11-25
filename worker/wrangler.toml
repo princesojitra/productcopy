@@ -1,0 +1,7 @@
+name = "productcopy-worker"
+main = "src/index.ts"
+compatibility_date = "2025-02-01"
+
+[vars]
+GEMINI_MODEL = "gemini-3.6-flash"
+ALLOWED_ORIGIN = "*"
