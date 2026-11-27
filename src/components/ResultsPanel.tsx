@@ -28,12 +28,14 @@ import { cn } from '@/lib/utils';
 
 interface ResultsPanelProps {
   result: GenerateSuccessResponse | null;
+  variationSeed?: number;
   isGenerating: boolean;
   errorMessage: string | null;
   errorRetryable: boolean;
   brandOrCategory?: string;
   imagePreviewUrl?: string | null;
   onRetry: () => void;
+  onRegenerate: () => void;
 }
 
 type FilterGroup = 'all' | 'storefront' | 'seo' | 'social';
@@ -47,12 +49,14 @@ const FILTER_TABS: Array<{ id: FilterGroup; label: string }> = [
 
 export function ResultsPanel({
   result,
+  variationSeed = 0,
   isGenerating,
   errorMessage,
   errorRetryable,
   brandOrCategory,
   imagePreviewUrl,
   onRetry,
+  onRegenerate,
 }: ResultsPanelProps) {
   const [copiedAll, setCopiedAll] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterGroup>('all');
@@ -449,8 +453,13 @@ export function ResultsPanel({
           {justGenerated && (
             <span className="animate-badge-pop inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
               <Sparkles className="h-3 w-3" />
-              Ready
+              {variationSeed > 0 ? `Variation #${variationSeed + 1}` : 'Ready'}
             </span>
+          )}
+          {!justGenerated && variationSeed > 0 && (
+            <Badge variant="outline" className="text-[11px] font-normal">
+              Variation #{variationSeed + 1}
+            </Badge>
           )}
           {meta.imageAnalyzed && (
             <Badge variant="success" className="text-[11px]">
@@ -464,9 +473,9 @@ export function ResultsPanel({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={onRetry}
+            onClick={onRegenerate}
             className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
-            title="Regenerate with current inputs"
+            title="Generate a fresh variation with a different angle"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Regenerate</span>

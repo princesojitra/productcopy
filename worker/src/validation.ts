@@ -135,6 +135,7 @@ export async function parseAndValidateGenerateRequest(
     });
   }
 
+  const rawVariation = getFormText(formData, 'variationSeed');
   const rawFields = {
     productName: getFormText(formData, 'productName'),
     brandOrCategory: getFormText(formData, 'brandOrCategory'),
@@ -142,6 +143,8 @@ export async function parseAndValidateGenerateRequest(
     details: getFormText(formData, 'details'),
     tone: getFormText(formData, 'tone'),
     language: getFormText(formData, 'language'),
+    ...(rawVariation ? { variationSeed: Number(rawVariation) } : {}),
+    previousTitle: getFormText(formData, 'previousTitle'),
   };
 
   const parsedFields = generateInputSchema.safeParse(rawFields);

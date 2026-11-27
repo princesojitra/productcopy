@@ -30,6 +30,8 @@ export const generateInputSchema = z.object({
   language: z.enum(LANGUAGE_VALUES, {
     errorMap: () => ({ message: 'Select a valid language.' }),
   }),
+  variationSeed: z.coerce.number().int().min(0).max(1_000_000_000).optional(),
+  previousTitle: z.string().trim().max(200).optional().or(z.literal('')),
 });
 
 export const groundingNotesSchema = z.object({

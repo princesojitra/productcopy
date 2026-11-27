@@ -61,6 +61,8 @@ export interface GenerateInputFields {
   details: string;
   tone: Tone;
   language: Language;
+  variationSeed?: number;
+  previousTitle?: string;
 }
 
 export interface GroundingNotes {

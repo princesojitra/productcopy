@@ -107,7 +107,31 @@ function buildSystemInstruction(
   ].join('\n');
 }
 
-function buildUserPrompt(fields: GenerateInputFields, hasImage: boolean): string {
+const CREATIVE_ANGLES = [
+  'Angle: Direct & crisp value proposition—open with the strongest practical benefit and punchy sentence structure.',
+  'Angle: Sensory & daily-ritual experience—open with how it feels to use or hold, then weave in the verified specs.',
+  'Angle: Craftsmanship & material focus—open with the build, finish, and material details before lifestyle benefits.',
+  'Angle: Occasion & audience fit—open with who it is made for and the ideal moment/gifting scenario.',
+  'Angle: Everyday upgrade—frame how this product elevates an ordinary routine using strictly verified features.',
+  'Angle: Editorial showcase—use evocative, modern retail storytelling with fresh phrasing and distinct CTA wording.',
+] as const;
+
+function getEffectiveSeed(providedSeed?: number): number {
+  if (typeof providedSeed === 'number' && providedSeed > 0) {
+    return providedSeed;
+  }
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return (buf[0] % 999_999) + 1;
+}
+
+function buildUserPrompt(
+  fields: GenerateInputFields,
+  hasImage: boolean,
+  seed: number,
+): string {
+  const angleHint = CREATIVE_ANGLES[seed % CREATIVE_ANGLES.length];
+
   return [
     'Generate the structured JSON product copy from the following verified product input:',
     '<USER_INPUT_DATA>',
@@ -119,8 +143,15 @@ function buildUserPrompt(fields: GenerateInputFields, hasImage: boolean): string
       ? 'Attached Image: Yes (use strictly for clearly visible aesthetic observations; do not fabricate hidden specs).'
       : 'Attached Image: No',
     '</USER_INPUT_DATA>',
+    '',
+    `CREATIVE DIRECTION (Run Seed #${seed}):`,
+    'Craft fresh, distinct copy with original headline phrasing, varied opening hooks, natural rhythm, and non-repetitive hashtags while staying 100% strictly faithful to the verified facts above.',
+    angleHint,
+    fields.previousTitle
+      ? `Previous title to avoid repeating verbatim: "${fields.previousTitle}"`
+      : null,
   ]
-    .filter(Boolean)
+    .filter((line): line is string => line !== null)
     .join('\n');
 }
 
@@ -277,11 +308,12 @@ export async function generateCopyWithGemini(params: {
     new Set([primaryModel, ...FALLBACK_GEMINI_MODELS]),
   );
   const hasImage = Boolean(params.image);
+  const effectiveSeed = getEffectiveSeed(params.fields.variationSeed);
 
   const userParts: Array<
     | { text: string }
     | { inlineData: { mimeType: string; data: string } }
-  > = [{ text: buildUserPrompt(params.fields, hasImage) }];
+  > = [{ text: buildUserPrompt(params.fields, hasImage, effectiveSeed) }];
 
   if (params.image) {
     userParts.push({
@@ -311,8 +343,8 @@ export async function generateCopyWithGemini(params: {
       },
     ],
     generationConfig: {
-      temperature: 0.4,
-      topP: 0.9,
+      temperature: 0.8,
+      topP: 0.95,
       responseMimeType: 'application/json',
       responseSchema: RESPONSE_JSON_SCHEMA,
     },

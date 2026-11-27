@@ -34,6 +34,13 @@ export async function generateProductCopy(
   formData.append('tone', fields.tone);
   formData.append('language', fields.language);
 
+  if (typeof fields.variationSeed === 'number' && fields.variationSeed > 0) {
+    formData.append('variationSeed', String(fields.variationSeed));
+  }
+  if (fields.previousTitle?.trim()) {
+    formData.append('previousTitle', fields.previousTitle.trim().slice(0, 200));
+  }
+
   if (imageFile) {
     formData.append('image', imageFile);
   }

@@ -30,6 +30,15 @@ function focusFirstInvalidField(errors: Record<string, string>) {
   });
 }
 
+function createRandomSeed(): number {
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return (buf[0] % 999_999) + 1;
+  }
+  return Math.floor(Math.random() * 999_999) + 1;
+}
+
 const INITIAL_FIELDS: GenerateInputFields = {
   productName: '',
   brandOrCategory: '',
@@ -46,6 +55,7 @@ export function App() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<GenerateSuccessResponse | null>(null);
+  const [variationSeed, setVariationSeed] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorRetryable, setErrorRetryable] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
@@ -64,6 +74,7 @@ export function App() {
     value: GenerateInputFields[K],
   ) => {
     setFields((prev) => ({ ...prev, [key]: value }));
+    setVariationSeed(0);
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
       const next = { ...prev };
@@ -92,6 +103,7 @@ export function App() {
     });
 
     setImageFile(file);
+    setVariationSeed(0);
     if (file) {
       setImagePreviewUrl(URL.createObjectURL(file));
     }
@@ -99,6 +111,7 @@ export function App() {
 
   const handleLoadSample = () => {
     setFields(SAMPLE_PRODUCT);
+    setVariationSeed(0);
     setFieldErrors({});
     setErrorMessage(null);
     toast.info('Sample product loaded');
@@ -114,11 +127,18 @@ export function App() {
     setImagePreviewUrl(null);
     setFieldErrors({});
     setResult(null);
+    setVariationSeed(0);
     setErrorMessage(null);
   };
 
-  const runGeneration = async () => {
-    const validation = generateInputSchema.safeParse(fields);
+  const runGeneration = async (isRegenerate = false) => {
+    const nextVariationCount = isRegenerate ? variationSeed + 1 : 0;
+    const requestSeed = createRandomSeed();
+    const validation = generateInputSchema.safeParse({
+      ...fields,
+      variationSeed: requestSeed,
+      previousTitle: isRegenerate ? result?.data.productTitle ?? '' : '',
+    });
     if (!validation.success) {
       const nextErrors: Record<string, string> = {};
       for (const issue of validation.error.issues) {
@@ -148,7 +168,10 @@ export function App() {
         controller.signal,
       );
       setResult(response);
-      toast.success('Product copy generated');
+      setVariationSeed(nextVariationCount);
+      toast.success(
+        isRegenerate ? 'Fresh variation generated' : 'Product copy generated',
+      );
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         return;
@@ -203,19 +226,21 @@ export function App() {
               isGenerating={isGenerating}
               onFieldChange={handleFieldChange}
               onSelectImage={handleSelectImage}
-              onSubmit={runGeneration}
+              onSubmit={() => runGeneration(false)}
             />
           </div>
 
           <div className="lg:col-span-7 xl:col-span-8">
             <ResultsPanel
               result={result}
+              variationSeed={variationSeed}
               isGenerating={isGenerating}
               errorMessage={errorMessage}
               errorRetryable={errorRetryable}
               brandOrCategory={fields.brandOrCategory}
               imagePreviewUrl={imagePreviewUrl}
-              onRetry={runGeneration}
+              onRetry={() => runGeneration(Boolean(result))}
+              onRegenerate={() => runGeneration(true)}
             />
           </div>
         </div>
